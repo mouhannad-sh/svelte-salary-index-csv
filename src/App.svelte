@@ -4,6 +4,7 @@
   import Comp from "./comp.svelte";
   const headers = [
     "job_title",
+    "job_type",
     "category",
     "location",
     "permanent_low",
@@ -15,30 +16,25 @@
   let result = null;
   let query = "";
   let queryMirror = "";
+  let selectedJobType;
+  let selectedJobCategory;
+  let selectedJobLocation;
   let location = [];
   let category = [];
+  let jobType = null;
+  let jobCategory = null;
+  let jobLocation = null;
   let type = null;
   let finishTime = null;
   let all_categories = [];
   let all_locations = [];
+  let all_jobType = [];
   let sortFilter = "median_high";
   let jobCount = {};
 
   const cleanArr = arr => arr.filter(i => i.length);
   async function setCSV(e) {
-    const fd = new FileReader();
-    const promise = new Promise(resolve => {
-      fd.onloadend = () => resolve(fd.result);
-    });
-    fd.readAsText(e.target.files[0]);
-    result = all_jobs = await (await csv({
-      headers,
-      colParser: {
-        category: item => item.toLowerCase(),
-        location: item => item.toLowerCase()
-      }
-    }).fromString(await promise)).filter(j => j.category && j.location);
-
+    result = all_jobs = JSON.parse(document.querySelector("#salary-data-json #slary-json-string").innerHTML)
     all_categories = all_jobs.reduce((acc, { category: cat }) => {
       if (acc.includes(cat.toLowerCase())) return acc;
       return acc.concat(cat.toLowerCase());
@@ -46,6 +42,10 @@
     all_locations = all_jobs.reduce((acc, { location: loc }) => {
       if (acc.includes(loc.toLowerCase())) return acc;
       return acc.concat(loc.toLowerCase());
+    }, []);
+    all_jobType = all_jobs.reduce((acc, { job_type: jobt }) => {
+      if (acc.includes(jobt.toLowerCase())) return acc;
+      return acc.concat(jobt.toLowerCase());
     }, []);
     updateCounters();
   }
@@ -57,42 +57,29 @@
     search();
   }
 
-  function searchLocation(e) {
-    const val = e.target.value.toLowerCase();
-    if (!all_jobs) return;
-    console.log(val.split(","));
-    location = val.split(",");
+  // function filterJobType(e) {
+  //   const val = e.target.value;
+  //   const checked = e.target.checked;
+  //   if (checked) {
+  //     jobType = jobType.concat(val);
+  //   } else {
+  //     jobType = jobType.filter(j => j !== val);
+  //   }
+  //   search();
+  // }
 
+  function filterJobLocation(e) {
+    jobLocation = e.target.value;
     search();
   }
 
-  function searchCategory(e) {
-    const val = e.target.value.toLowerCase();
-    if (!all_jobs) return;
-    category = val.split(",").filter(i => i.length);
-    search();
-    updateCounters("result");
-  }
-
-  function filterLocation(e) {
-    const val = e.target.value;
-    const checked = e.target.checked;
-    if (checked) {
-      location = location.concat(val);
-    } else {
-      location = location.filter(l => l !== val);
-    }
+  function filterJobCategory(e) {
+    jobCategory = e.target.value;
     search();
   }
 
-  function filterCategory(e) {
-    const val = e.target.value;
-    const checked = e.target.checked;
-    if (checked) {
-      category = category.concat(val);
-    } else {
-      category = category.filter(c => c !== val);
-    }
+  function filterJobType(e) {
+    jobType = e.target.value;
     search();
   }
 
@@ -101,18 +88,20 @@
     result = all_jobs
       .filter(job => {
         const conditions = [];
-        let match = false;
-        const sanitised_locations = cleanArr(location);
-        const sanitised_categories = cleanArr(category);
+        let match = true;
+        const sanitised_jobType = jobType;
+        const sanitised_jobCategory = jobCategory;
+        const sanitised_jobLocation = jobLocation;
         if (twoWayMatch(query, job.job_title)) match = true;
-        if (sanitised_locations.length) {
-          // if we have a location value but don't have a match, then falsify the match
-          if (!sanitised_locations.some(l => twoWayMatch(l, job.location)))
-            match = false;
+
+        if (sanitised_jobLocation) {
+          match = sanitised_jobLocation === job.location;
         }
-        if (sanitised_categories.length) {
-          if (!sanitised_categories.some(c => twoWayMatch(c, job.category)))
-            match = false;
+        if (sanitised_jobCategory && match ) {
+          match = sanitised_jobCategory === job.category;
+        }
+        if (sanitised_jobType && match ) {
+          match = sanitised_jobType === job.job_type;
         }
         return match;
       })
@@ -173,39 +162,19 @@
   function updateCounters(type = "all_jobs") {
     new Promise(resolve => {
       const counts = {};
-      const buildCounts = ({ category, location }) => {
+      const buildCounts = ({ category, location, job_type }) => {
         category = category.toLowerCase();
         location = location.toLowerCase();
+        job_type = job_type.toLowerCase();
         counts[`cat_${category}`] = ++counts[`cat_${category}`] || 1;
         counts[`loc_${location}`] = ++counts[`loc_${location}`] || 1;
+        counts[`jobt_${job_type}`] = ++counts[`jobt_${job_type}`] || 1;
       };
       if (type === "all_jobs") {
         all_jobs.forEach(buildCounts);
       } else if (type === "result") {
         result.forEach(buildCounts);
-        if (type === "result") {
-          if (cleanArr(category).length || cleanArr(location).length) {
-            all_categories.forEach(cat => {
-              const filt = all_jobs.filter(
-                job =>
-                  (cleanArr(location).length
-                    ? location.includes(job.location)
-                    : true) && cat === job.category
-              );
-              counts[`cat_${cat}`] = filt.length;
-            });
-
-            all_locations.forEach(loc => {
-              const filt = all_jobs.filter(
-                job =>
-                  (cleanArr(category).length
-                    ? category.includes(job.category)
-                    : true) && loc === job.location
-              );
-              counts[`loc_${loc}`] = filt.length;
-            });
-          }
-        }
+        
       }
       jobCount = counts;
       resolve();
@@ -219,11 +188,15 @@
   $: queryMirror = query + `...oh yah.. I'm derived !`;
 
   $: document.title = query;
+  setCSV()
 </script>
 
 <style>
   h1 {
-    color: purple;
+    color: green;
+  }
+   teal {
+    color: teal;
   }
   red {
     color: red;
@@ -234,6 +207,9 @@
   green {
     color: green;
   }
+  teal {
+    color: teal;
+  }
   .search {
     display: block;
     margin-bottom: 20px;
@@ -243,121 +219,39 @@
     grid-template-columns: minmax(auto, 12px) auto;
     grid-column-gap: 8px;
   }
-  .filters label span {
+  /* .filters label span {
     color: #8c8c8c;
     font-size: 11px;
-  }
+  } */
   .results-container {
-    display: grid;
-    grid-template-columns: 1fr 3fr;
+    display: block;
   }
 </style>
 
 <Comp />
-<h1>Choose a salary index CSV to see some magic</h1>
-<h1>{queryMirror}</h1>
-<input type="file" on:change={setCSV} />
 <div class="search">
-  <input type="text" on:input={searchQuery} />
-  <input type="text" value={location} on:input={searchLocation} />
-  <input type="text" on:input={searchCategory} />
+  <input placeholder="Job Title" type="text" on:input={searchQuery} />
+  <select bind:value={selectedJobType} on:change={filterJobType}>
+    <option value=null selected disabled>Job Type</option>
+    {#each all_jobType as jobt, i}
+      <option id={jobt} value={jobt} selectedJobType={jobType}>{jobt} (<span>{jobCount[`jobt_${jobt}`] || 0}</span>)</option>
+    {/each}
+  </select>
+  <select bind:value={selectedJobCategory} on:change={filterJobCategory}>
+    <option value=null selected disabled>Category</option>
+    {#each all_categories as cat, i}
+      <option id={cat} value={cat} selectedJobCategory={jobCategory}>{cat} (<span>{jobCount[`cat_${cat}`] || 0}</span>)</option>
+    {/each}
+  </select>
+  <select bind:value={selectedJobLocation} on:change={filterJobLocation}>
+    <option value=null selected disabled>Location</option>
+    {#each all_locations as loc, i}
+      <option id={loc} value={loc} selectedJobLocation={jobLocation}>{loc} (<span>{jobCount[`loc_${loc}`] || 0}</span>)</option>
+    {/each}
+  </select>
 </div>
 <div class="results-container">
-  <div class="filters">
-    {#if result && result.length}
-      <h4>Sort by Salary</h4>
-      <div>
-        <input
-          type="radio"
-          name="salary"
-          value="low_low"
-          id="low_low"
-          checked={sortFilter === 'low_low'}
-          on:change={sortBySalary} />
-        <label for="low_low">Lowest Low</label>
-      </div>
-      <div>
-        <input
-          type="radio"
-          name="salary"
-          value="high_low"
-          id="high_low"
-          checked={sortFilter === 'high_low'}
-          on:change={sortBySalary} />
-        <label for="high_low">Highest Low</label>
-      </div>
-      <div>
-        <input
-          type="radio"
-          name="salary"
-          value="low_high"
-          id="low_high"
-          checked={sortFilter === 'low_high'}
-          on:change={sortBySalary} />
-        <label for="low_high">Lowest High</label>
-      </div>
-      <div>
-        <input
-          type="radio"
-          name="salary"
-          value="high_high"
-          id="high_high"
-          checked={sortFilter === 'high_high'}
-          on:change={sortBySalary} />
-        <label for="high_high">Highest High</label>
-      </div>
-      <div>
-        <input
-          type="radio"
-          name="salary"
-          value="median_high"
-          id="median_high"
-          checked={sortFilter === 'median_high'}
-          on:change={sortBySalary} />
-        <label for="median_high">Highest Median</label>
-      </div>
-      <div>
-        <input
-          type="radio"
-          name="salary"
-          value="median_low"
-          id="median_low"
-          checked={sortFilter === 'median_low'}
-          on:change={sortBySalary} />
-        <label for="median_low">Lowest Median</label>
-      </div>
-      <h4>Locations</h4>
-      {#each all_locations as loc, i}
-        <div>
-          <input
-            type="checkbox"
-            id={loc}
-            value={loc}
-            on:change={filterLocation}
-            checked={matchFilter(location, loc)} />
-          <label for={loc}>
-             {loc}
-            <span>{jobCount[`loc_${loc}`] || 0}</span>
-          </label>
-        </div>
-      {/each}
-      <h4>Categories</h4>
-      {#each all_categories as cat, i}
-        <div>
-          <input
-            type="checkbox"
-            id={cat}
-            value={cat}
-            on:change={filterCategory}
-            checked={matchFilter(category, cat)} />
-          <label for={cat}>
-             {cat}
-            <span>{jobCount[`cat_${cat}`] || 0}</span>
-          </label>
-        </div>
-      {/each}
-    {/if}
-  </div>
+
   <div class="results">
     {#if result}
       <p>
@@ -365,14 +259,16 @@
         milliseconds
       </p>
       <ol>
-        {#each result as { job_title, category, location, permanent_high, permanent_low }, i}
+        {#each result as { job_title, job_type, category, location, permanent_high, permanent_low }, i}
           <li>
-             {job_title} OF
-            <blue>{category}</blue>
+            <teal><b>{job_title}</b></teal> of
+            <b>{job_type}</b>
             in
-            <red>{location}</red>
+            <b>{category}</b>
+            in
+            <b>{location}</b>
             for
-            <green>{permanent_low}-{permanent_high}</green>
+            <b>{permanent_low}-{permanent_high}</b>
           </li>
         {:else}Nothing to Show{/each}
       </ol>

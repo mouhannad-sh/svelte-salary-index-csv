@@ -42,6 +42,7 @@ export default {
 		production && terser()
 	],
 	watch: {
-		clearScreen: false
+		chokidar: true 
+		// clearScreen: false
 	}
 };

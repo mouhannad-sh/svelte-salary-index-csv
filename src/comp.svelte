@@ -1,1 +1,1 @@
-<h1>HEllo OMAR! I see you bored !</h1>
+<h1>Salary Calculator</h1>

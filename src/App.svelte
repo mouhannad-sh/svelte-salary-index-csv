@@ -1,18 +1,7 @@
 <script>
   export let name;
-  import csv from "csvtojson/browser/browser.js";
   import Comp from "./comp.svelte";
   import { onMount } from "svelte";
-  const headers = [
-    "job_title",
-    "job_type",
-    "category",
-    "location",
-    "permanent_low",
-    "permanent_high",
-    "contract_low",
-    "contract_high"
-  ];
   let all_jobs = null;
   let result = null;
   let query = "";
@@ -25,6 +14,7 @@
   let jobType = null;
   let jobCategory = null;
   let jobLocation = null;
+  let shouldSearch = false;
   let type = null;
   let finishTime = null;
   let all_categories = [];
@@ -34,11 +24,11 @@
   let jobCount = {};
 
   const cleanArr = arr => arr.filter(i => i.length);
-  async function setCSV(e) {
+  function setCSV(e) {
     const parsedData = JSON.parse(
       document.querySelector("#salary-data-json #slary-json-string").innerText
     );
-    result = all_jobs = parsedData
+    all_jobs = parsedData
       .filter(({ category }) => category)
       .map(item => {
         Object.keys(item).forEach(key => {
@@ -83,31 +73,42 @@
     search();
   }
 
+  function hasValue(x) {
+    return Boolean(x && x.length && !/null|undefinde/.test(x));
+  }
+
   function search() {
+    if (!shouldSearch) return;
     const start = window.performance.now();
     result = all_jobs
       .filter(job => {
         const conditions = [];
         let match = true;
-        const sanitised_jobType = jobType;
-        const sanitised_jobCategory = jobCategory;
-        const sanitised_jobLocation = jobLocation;
-        if (twoWayMatch(query, job.job_title)) match = true;
-
-        if (sanitised_jobLocation) {
-          match = sanitised_jobLocation === job.location;
+        const hasQuery = hasValue(query);
+        const hasJobType = hasValue(jobType);
+        const hasJobLocation = hasValue(jobLocation);
+        const hasJobCategory = hasValue(jobCategory);
+        // match all if no filters selected !
+        if (!hasQuery && !hasJobType && !hasJobLocation & !hasJobCategory) {
+          return true;
         }
-        if (sanitised_jobCategory && match) {
-          match = sanitised_jobCategory === job.category;
+        if (hasJobLocation) {
+          match = jobLocation === job.location;
         }
-        if (sanitised_jobType && match) {
-          match = sanitised_jobType === job.job_type;
+        if (hasJobCategory && match) {
+          match = jobCategory === job.category;
+        }
+        if (hasJobType && match) {
+          match = jobType === job.job_type;
+        }
+        if (hasQuery && match) {
+          if (twoWayMatch(query, job.job_title)) match = true;
+          else match = false;
         }
         return match;
       })
       .sort(_sortHandler);
     finishTime = (window.performance.now() - start).toFixed(5);
-    // updateCounters("result");
   }
 
   function twoWayMatch(a = "", b = "") {
@@ -159,34 +160,6 @@
     }
   }
 
-  // function updateCounters(type = "all_jobs") {
-  //   new Promise(resolve => {
-  //     const counts = {};
-  //     const buildCounts = ({ category, location, job_type }) => {
-  //       category = category.toLowerCase();
-  //       location = location.toLowerCase();
-  //       job_type = job_type.toLowerCase();
-  //       counts[`cat_${category}`] = ++counts[`cat_${category}`] || 1;
-  //       counts[`loc_${location}`] = ++counts[`loc_${location}`] || 1;
-  //       counts[`jobt_${job_type}`] = ++counts[`jobt_${job_type}`] || 1;
-  //     };
-  //     if (type === "all_jobs") {
-  //       all_jobs.forEach(buildCounts);
-  //     } else if (type === "result") {
-  //       if (result.length) {
-  //         result.forEach(buildCounts);
-  //       } else {
-  //         all_jobs.array.forEach(element => {
-
-  //         });
-  //       }
-  //     }
-  //     console.log(result, type, counts);
-  //     jobCount = counts;
-  //     resolve();
-  //   });
-  // }
-
   function matchFilter(arr = [], val = "") {
     return arr.some(i => i.length && twoWayMatch(i, val));
   }
@@ -195,18 +168,19 @@
     setCSV();
     console.log("the component has mounted");
   });
+
+  function startSearch() {
+    shouldSearch = true;
+    search();
+  }
 </script>
 
 <style>
-  h1 {
-    color: green;
-  }
   teal {
     color: teal;
   }
   .search {
     display: block;
-    margin-bottom: 20px;
   }
   .filters > div {
     display: grid;
@@ -216,65 +190,83 @@
   .results-container {
     display: block;
   }
+  .search-container {
+    background: #efefef;
+    padding: 10px;
+  }
+  input,
+  select {
+    -webkit-appearance: none;
+    padding: 15px 10px;
+  }
+
+  button {
+    background: #01c1d6;
+    color: #fff;
+    padding: 15px;
+  }
 </style>
 
 <Comp />
-<div class="search">
-  <input placeholder="Job Title" type="text" on:input={searchQuery} />
-  <select bind:value={selectedJobType} on:change={filterJobType}>
-    <option value="null" selected disabled>Job Type</option>
-    {#each all_jobType as jobt, i}
-      <option id={jobt} value={jobt} selectedJobType={jobType}> {jobt} </option>
-    {/each}
-  </select>
-  <select bind:value={selectedJobCategory} on:change={filterJobCategory}>
-    <option value="null" selected disabled>Category</option>
-    {#each all_categories as cat, i}
-      <option id={cat} value={cat} selectedJobCategory={jobCategory}>
-         {cat}
-      </option>
-    {/each}
-  </select>
-  <select bind:value={selectedJobLocation} on:change={filterJobLocation}>
-    <option value="null" selected disabled>Location</option>
-    {#each all_locations as loc, i}
-      <option id={loc} value={loc} selectedJobLocation={jobLocation}>
-         {loc}
-      </option>
-    {/each}
-  </select>
-</div>
-<div class="results-container">
-
-  <div class="results">
-    {#if result}
-      <p>
-        Found {result.length} results! in {all_jobs.length} during {finishTime}
-        milliseconds
-      </p>
-      <ol>
-        {#each result as { job_title, job_type, category, location, permanent_high, permanent_low }, i}
-          <li>
-            <teal>
-              <b>{job_title}</b>
-            </teal>
-            of
-            <b>{job_type}</b>
-            in
-            <b>{category}</b>
-            in
-            <b>{location}</b>
-            for
-            <b>{permanent_low}-{permanent_high}</b>
-          </li>
-        {:else}Nothing to Show{/each}
-      </ol>
-    {:else if result === null && all_jobs === null}
-      <p>You need to upload a CSV first!</p>
-    {:else if result === null && all_jobs}
-      <p>Type to search!</p>
-    {:else}
-      <p>No results found for your search!</p>
-    {/if}
+<div class="search-container">
+  <div class="search">
+    <input placeholder="Job Title" type="text" on:input={searchQuery} />
+    <select bind:value={selectedJobType} on:change={filterJobType}>
+      <option value="null" selected disabled>Job Type</option>
+      {#each all_jobType as jobt, i}
+        <option id={jobt} value={jobt} selectedJobType={jobType}>
+           {jobt}
+        </option>
+      {/each}
+    </select>
+    <select bind:value={selectedJobCategory} on:change={filterJobCategory}>
+      <option value="null" selected disabled>Category</option>
+      <option value={null}>All Categories</option>
+      {#each all_categories as cat, i}
+        <option id={cat} value={cat} selectedJobCategory={jobCategory}>
+           {cat}
+        </option>
+      {/each}
+    </select>
+    <select bind:value={selectedJobLocation} on:change={filterJobLocation}>
+      <option value="null" selected disabled>Location</option>
+      {#each all_locations as loc, i}
+        <option id={loc} value={loc} selectedJobLocation={jobLocation}>
+           {loc}
+        </option>
+      {/each}
+    </select>
+    <button on:click={startSearch}>Search</button>
+  </div>
+  <div class="results-container">
+    <div class="results">
+      {#if result}
+        <p>
+          Found {result.length} results! in {all_jobs.length} during {finishTime}
+          milliseconds
+        </p>
+        <ol>
+          {#each result as { job_title, job_type, category, location, permanent_high, permanent_low }, i}
+            <li>
+              <teal>
+                <b>{job_title}</b>
+              </teal>
+              of
+              <b>{job_type}</b>
+              in
+              <b>{category}</b>
+              in
+              <b>{location}</b>
+              for
+              <b>{permanent_low}-{permanent_high}</b>
+            </li>
+          {:else}Nothing to Show{/each}
+        </ol>
+      {:else if result === null && all_jobs}
+        <span />
+      {:else}
+        <p>No results found for your search!</p>
+      {/if}
+    </div>
   </div>
 </div>

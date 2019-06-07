@@ -2,6 +2,7 @@
   export let name;
   import csv from "csvtojson/browser/browser.js";
   import Comp from "./comp.svelte";
+  import { onMount } from "svelte";
   const headers = [
     "job_title",
     "job_type",
@@ -34,20 +35,30 @@
 
   const cleanArr = arr => arr.filter(i => i.length);
   async function setCSV(e) {
-    result = all_jobs = JSON.parse(document.querySelector("#salary-data-json #slary-json-string").innerHTML)
+    const parsedData = JSON.parse(
+      document.querySelector("#salary-data-json #slary-json-string").innerText
+    );
+    result = all_jobs = parsedData
+      .filter(({ category }) => category)
+      .map(item => {
+        Object.keys(item).forEach(key => {
+          item[key] = item[key].toLowerCase();
+        });
+        return item;
+      });
     all_categories = all_jobs.reduce((acc, { category: cat }) => {
-      if (acc.includes(cat.toLowerCase())) return acc;
+      if (!cat || acc.includes(cat.toLowerCase())) return acc;
       return acc.concat(cat.toLowerCase());
     }, []);
     all_locations = all_jobs.reduce((acc, { location: loc }) => {
-      if (acc.includes(loc.toLowerCase())) return acc;
+      if (!loc || acc.includes(loc.toLowerCase())) return acc;
       return acc.concat(loc.toLowerCase());
     }, []);
     all_jobType = all_jobs.reduce((acc, { job_type: jobt }) => {
-      if (acc.includes(jobt.toLowerCase())) return acc;
+      if (!jobt || acc.includes(jobt.toLowerCase())) return acc;
       return acc.concat(jobt.toLowerCase());
     }, []);
-    updateCounters();
+    // updateCounters();
   }
 
   function searchQuery(e) {
@@ -56,17 +67,6 @@
     query = val;
     search();
   }
-
-  // function filterJobType(e) {
-  //   const val = e.target.value;
-  //   const checked = e.target.checked;
-  //   if (checked) {
-  //     jobType = jobType.concat(val);
-  //   } else {
-  //     jobType = jobType.filter(j => j !== val);
-  //   }
-  //   search();
-  // }
 
   function filterJobLocation(e) {
     jobLocation = e.target.value;
@@ -97,17 +97,17 @@
         if (sanitised_jobLocation) {
           match = sanitised_jobLocation === job.location;
         }
-        if (sanitised_jobCategory && match ) {
+        if (sanitised_jobCategory && match) {
           match = sanitised_jobCategory === job.category;
         }
-        if (sanitised_jobType && match ) {
+        if (sanitised_jobType && match) {
           match = sanitised_jobType === job.job_type;
         }
         return match;
       })
       .sort(_sortHandler);
     finishTime = (window.performance.now() - start).toFixed(5);
-    updateCounters("result");
+    // updateCounters("result");
   }
 
   function twoWayMatch(a = "", b = "") {
@@ -159,52 +159,46 @@
     }
   }
 
-  function updateCounters(type = "all_jobs") {
-    new Promise(resolve => {
-      const counts = {};
-      const buildCounts = ({ category, location, job_type }) => {
-        category = category.toLowerCase();
-        location = location.toLowerCase();
-        job_type = job_type.toLowerCase();
-        counts[`cat_${category}`] = ++counts[`cat_${category}`] || 1;
-        counts[`loc_${location}`] = ++counts[`loc_${location}`] || 1;
-        counts[`jobt_${job_type}`] = ++counts[`jobt_${job_type}`] || 1;
-      };
-      if (type === "all_jobs") {
-        all_jobs.forEach(buildCounts);
-      } else if (type === "result") {
-        result.forEach(buildCounts);
-        
-      }
-      jobCount = counts;
-      resolve();
-    });
-  }
+  // function updateCounters(type = "all_jobs") {
+  //   new Promise(resolve => {
+  //     const counts = {};
+  //     const buildCounts = ({ category, location, job_type }) => {
+  //       category = category.toLowerCase();
+  //       location = location.toLowerCase();
+  //       job_type = job_type.toLowerCase();
+  //       counts[`cat_${category}`] = ++counts[`cat_${category}`] || 1;
+  //       counts[`loc_${location}`] = ++counts[`loc_${location}`] || 1;
+  //       counts[`jobt_${job_type}`] = ++counts[`jobt_${job_type}`] || 1;
+  //     };
+  //     if (type === "all_jobs") {
+  //       all_jobs.forEach(buildCounts);
+  //     } else if (type === "result") {
+  //       if (result.length) {
+  //         result.forEach(buildCounts);
+  //       } else {
+  //         all_jobs.array.forEach(element => {
+
+  //         });
+  //       }
+  //     }
+  //     console.log(result, type, counts);
+  //     jobCount = counts;
+  //     resolve();
+  //   });
+  // }
 
   function matchFilter(arr = [], val = "") {
     return arr.some(i => i.length && twoWayMatch(i, val));
   }
 
-  $: queryMirror = query + `...oh yah.. I'm derived !`;
-
-  $: document.title = query;
-  setCSV()
+  onMount(() => {
+    setCSV();
+    console.log("the component has mounted");
+  });
 </script>
 
 <style>
   h1 {
-    color: green;
-  }
-   teal {
-    color: teal;
-  }
-  red {
-    color: red;
-  }
-  blue {
-    color: blue;
-  }
-  green {
     color: green;
   }
   teal {
@@ -219,34 +213,38 @@
     grid-template-columns: minmax(auto, 12px) auto;
     grid-column-gap: 8px;
   }
-  /* .filters label span {
-    color: #8c8c8c;
-    font-size: 11px;
-  } */
   .results-container {
     display: block;
+    
   }
+  .results {
+      background: #ccc;
+    }
 </style>
 
 <Comp />
 <div class="search">
   <input placeholder="Job Title" type="text" on:input={searchQuery} />
   <select bind:value={selectedJobType} on:change={filterJobType}>
-    <option value=null selected disabled>Job Type</option>
+    <option value="null" selected disabled>Job Type</option>
     {#each all_jobType as jobt, i}
-      <option id={jobt} value={jobt} selectedJobType={jobType}>{jobt} (<span>{jobCount[`jobt_${jobt}`] || 0}</span>)</option>
+      <option id={jobt} value={jobt} selectedJobType={jobType}> {jobt} </option>
     {/each}
   </select>
   <select bind:value={selectedJobCategory} on:change={filterJobCategory}>
-    <option value=null selected disabled>Category</option>
+    <option value="null" selected disabled>Category</option>
     {#each all_categories as cat, i}
-      <option id={cat} value={cat} selectedJobCategory={jobCategory}>{cat} (<span>{jobCount[`cat_${cat}`] || 0}</span>)</option>
+      <option id={cat} value={cat} selectedJobCategory={jobCategory}>
+         {cat}
+      </option>
     {/each}
   </select>
   <select bind:value={selectedJobLocation} on:change={filterJobLocation}>
-    <option value=null selected disabled>Location</option>
+    <option value="null" selected disabled>Location</option>
     {#each all_locations as loc, i}
-      <option id={loc} value={loc} selectedJobLocation={jobLocation}>{loc} (<span>{jobCount[`loc_${loc}`] || 0}</span>)</option>
+      <option id={loc} value={loc} selectedJobLocation={jobLocation}>
+         {loc}
+      </option>
     {/each}
   </select>
 </div>
@@ -261,7 +259,10 @@
       <ol>
         {#each result as { job_title, job_type, category, location, permanent_high, permanent_low }, i}
           <li>
-            <teal><b>{job_title}</b></teal> of
+            <teal>
+              <b>{job_title}</b>
+            </teal>
+            of
             <b>{job_type}</b>
             in
             <b>{category}</b>

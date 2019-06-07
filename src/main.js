@@ -1,7 +1,7 @@
 import App from './App.svelte';
 
 const app = new App({
-	target: document.body.querySelector('#salaryIndex'),
+	target: document.querySelector('#salaryIndex'),
 	props: {
 		name: 'world'
 	}

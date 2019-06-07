@@ -3,10 +3,10 @@ import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
+import babel from 'rollup-plugin-babel';
 
 const production = !process.env.ROLLUP_WATCH;
-
-export default {
+const devOptions  = {
 	input: 'src/main.js',
 	output: {
 		sourcemap: true,
@@ -32,7 +32,6 @@ export default {
 		// https://github.com/rollup/rollup-plugin-commonjs
 		resolve(),
 		commonjs(),
-
 		// Watch the `public` directory and refresh the
 		// browser on changes when not in production
 		!production && livereload('public'),
@@ -45,4 +44,20 @@ export default {
 		chokidar: true 
 		// clearScreen: false
 	}
-};
+}
+const babelOptions = {
+	input: 'public/bundle.js',
+	output: {
+		sourcemap: true,
+		format: 'iife',
+		name: 'app',
+		file: 'public/bundle.ie.js'
+	},
+	plugins: [
+	  babel({
+		exclude: 'node_modules/**'
+	  }),
+	  production && terser()
+	]
+  }
+export default !production ? devOptions : [devOptions,babelOptions]

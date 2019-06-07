@@ -1,1 +1,1 @@
-<h1>Salary Calculator</h1>
+<h1>Check your salary</h1>

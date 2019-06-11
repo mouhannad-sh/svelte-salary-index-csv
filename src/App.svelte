@@ -173,6 +173,12 @@
     shouldSearch = true;
     search();
   }
+
+  function formatCasing(str) {
+    return str.length && str.length < 4
+      ? str.toUpperCase()
+      : str[0].toUpperCase() + str.slice(1);
+  }
 </script>
 
 <style>
@@ -187,7 +193,6 @@
   }
   .results-container {
     display: block;
-    
   }
   .search-container {
     background: #efefef;
@@ -203,28 +208,28 @@
   input {
     margin: 5px 0 5px 5px;
   }
-label.wrap {
-    overflow: hidden; 
+  label.wrap {
+    overflow: hidden;
     position: relative;
     width: 100%;
-}
+  }
 
-select.dropdown{      
-   -webkit-appearance: none;
+  select.dropdown {
+    -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-}
-label.wrap:after {
-    content:"\f107";
+  }
+  label.wrap:after {
+    content: "\f107";
     font-family: FontAwesome;
-    position: absolute; 
-    right: 0; 
+    position: absolute;
+    right: 0;
     top: 22px;
     z-index: 1;
     width: 10%;
-    height: 100%;  
-    pointer-events: none;    
-}
+    height: 100%;
+    pointer-events: none;
+  }
   button {
     position: relative;
     background: none;
@@ -237,13 +242,22 @@ label.wrap:after {
     border: 0;
   }
   button::before {
-    content: '';
+    content: "";
     background: #00bed4;
     position: absolute;
     top: 0;
     right: 0;
     width: 100%;
     height: 100%;
+  }
+  .job-location {
+    text-transform: capitalize;
+  }
+  .abbriviated {
+    text-transform: uppercase;
+  }
+  .captalized {
+    text-transform: capitalize;
   }
 </style>
 
@@ -252,39 +266,50 @@ label.wrap:after {
   <div class="search">
     <input placeholder="Job Title" type="text" on:input={searchQuery} />
     <label class="wrap">
-      <select class="dropdown" bind:value={selectedJobType} on:change={filterJobType}>
+      <select
+        class="dropdown"
+        bind:value={selectedJobType}
+        on:change={filterJobType}>
         <option value="null" selected disabled>Job Type</option>
-        <option value={null}>All Job Type</option>
+        <option value={null}>All Job Types</option>
         {#each all_jobType as jobt, i}
           <option id={jobt} value={jobt} selectedJobType={jobType}>
-            {jobt}
+             {formatCasing(jobt)}
           </option>
         {/each}
       </select>
     </label>
     <label class="wrap">
-      <select class="dropdown" bind:value={selectedJobCategory} on:change={filterJobCategory}>
+      <select
+        class="dropdown"
+        bind:value={selectedJobCategory}
+        on:change={filterJobCategory}>
         <option value="null" selected disabled>Job Category</option>
         <option value={null}>All Categories</option>
         {#each all_categories as cat, i}
           <option id={cat} value={cat} selectedJobCategory={jobCategory}>
-            {cat}
+             {formatCasing(cat)}
           </option>
         {/each}
       </select>
     </label>
     <label class="wrap">
-      <select class="dropdown" bind:value={selectedJobLocation} on:change={filterJobLocation}>
+      <select
+        class="dropdown"
+        bind:value={selectedJobLocation}
+        on:change={filterJobLocation}>
         <option value="null" selected disabled>Location</option>
         <option value={null}>All Job Locations</option>
         {#each all_locations as loc, i}
           <option id={loc} value={loc} selectedJobLocation={jobLocation}>
-            {loc}
+             {formatCasing(loc)}
           </option>
         {/each}
       </select>
     </label>
-    <button on:click={startSearch}><i class="fa fa-search"></i></button>
+    <button on:click={startSearch}>
+      <i class="fa fa-search" />
+    </button>
   </div>
   <div class="results-container">
     <div class="results">
@@ -296,15 +321,16 @@ label.wrap:after {
         <ol>
           {#each result as { job_title, job_type, category, location, permanent_high, permanent_low }, i}
             <li>
-              <div class="job-title">
-                {job_title}
-              </div>
+              <div class="job-title"> {job_title} </div>
               of
               <div class="job-type">{job_type}</div>
               in
               <div class="job-category">{category}</div>
               in
-              <div class="job-location">{location}</div>
+              <div
+                class="job-location {location.length && location.length < 4 ? 'abbriviated' : null}">
+                 {location}
+              </div>
               for
               <div class="job-range">{permanent_low}-{permanent_high}</div>
             </li>

@@ -176,11 +176,9 @@
 </script>
 
 <style>
-  teal {
-    color: teal;
-  }
   .search {
-    display: block;
+    display: flex;
+    position: relative;
   }
   .filters > div {
     display: grid;
@@ -197,14 +195,55 @@
   }
   input,
   select {
-    -webkit-appearance: none;
     padding: 15px 10px;
+    width: 100%;
+    border: 0;
+    margin: 5px;
   }
+  input {
+    margin: 5px 0 5px 5px;
+  }
+label.wrap {
+    overflow: hidden; 
+    position: relative;
+    width: 100%;
+}
 
+select.dropdown{      
+   -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+label.wrap:after {
+    content:"\f107";
+    font-family: FontAwesome;
+    position: absolute; 
+    right: 0; 
+    top: 22px;
+    z-index: 1;
+    width: 10%;
+    height: 100%;  
+    pointer-events: none;    
+}
   button {
-    background: #01c1d6;
+    position: relative;
+    background: none;
     color: #fff;
     padding: 15px;
+    margin: 5px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 0;
+  }
+  button::before {
+    content: '';
+    background: #00bed4;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
   }
 </style>
 
@@ -212,32 +251,40 @@
 <div class="search-container">
   <div class="search">
     <input placeholder="Job Title" type="text" on:input={searchQuery} />
-    <select bind:value={selectedJobType} on:change={filterJobType}>
-      <option value="null" selected disabled>Job Type</option>
-      {#each all_jobType as jobt, i}
-        <option id={jobt} value={jobt} selectedJobType={jobType}>
-           {jobt}
-        </option>
-      {/each}
-    </select>
-    <select bind:value={selectedJobCategory} on:change={filterJobCategory}>
-      <option value="null" selected disabled>Category</option>
-      <option value={null}>All Categories</option>
-      {#each all_categories as cat, i}
-        <option id={cat} value={cat} selectedJobCategory={jobCategory}>
-           {cat}
-        </option>
-      {/each}
-    </select>
-    <select bind:value={selectedJobLocation} on:change={filterJobLocation}>
-      <option value="null" selected disabled>Location</option>
-      {#each all_locations as loc, i}
-        <option id={loc} value={loc} selectedJobLocation={jobLocation}>
-           {loc}
-        </option>
-      {/each}
-    </select>
-    <button on:click={startSearch}>Search</button>
+    <label class="wrap">
+      <select class="dropdown" bind:value={selectedJobType} on:change={filterJobType}>
+        <option value="null" selected disabled>Job Type</option>
+        <option value={null}>All Job Type</option>
+        {#each all_jobType as jobt, i}
+          <option id={jobt} value={jobt} selectedJobType={jobType}>
+            {jobt}
+          </option>
+        {/each}
+      </select>
+    </label>
+    <label class="wrap">
+      <select class="dropdown" bind:value={selectedJobCategory} on:change={filterJobCategory}>
+        <option value="null" selected disabled>Job Category</option>
+        <option value={null}>All Categories</option>
+        {#each all_categories as cat, i}
+          <option id={cat} value={cat} selectedJobCategory={jobCategory}>
+            {cat}
+          </option>
+        {/each}
+      </select>
+    </label>
+    <label class="wrap">
+      <select class="dropdown" bind:value={selectedJobLocation} on:change={filterJobLocation}>
+        <option value="null" selected disabled>Location</option>
+        <option value={null}>All Job Locations</option>
+        {#each all_locations as loc, i}
+          <option id={loc} value={loc} selectedJobLocation={jobLocation}>
+            {loc}
+          </option>
+        {/each}
+      </select>
+    </label>
+    <button on:click={startSearch}><i class="fa fa-search"></i></button>
   </div>
   <div class="results-container">
     <div class="results">
@@ -249,17 +296,17 @@
         <ol>
           {#each result as { job_title, job_type, category, location, permanent_high, permanent_low }, i}
             <li>
-              <teal>
-                <b>{job_title}</b>
-              </teal>
+              <div class="job-title">
+                {job_title}
+              </div>
               of
-              <b>{job_type}</b>
+              <div class="job-type">{job_type}</div>
               in
-              <b>{category}</b>
+              <div class="job-category">{category}</div>
               in
-              <b>{location}</b>
+              <div class="job-location">{location}</div>
               for
-              <b>{permanent_low}-{permanent_high}</b>
+              <div class="job-range">{permanent_low}-{permanent_high}</div>
             </li>
           {:else}Nothing to Show{/each}
         </ol>

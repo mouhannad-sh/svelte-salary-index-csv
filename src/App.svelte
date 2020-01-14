@@ -1,180 +1,190 @@
 <script>
-  export let name;
-  import Comp from "./comp.svelte";
-  import { onMount } from "svelte";
-  let all_jobs = null;
-  let result = null;
-  let query = "";
-  let queryMirror = "";
-  let selectedJobType;
-  let selectedJobCategory;
-  let selectedJobLocation;
-  let location = [];
-  let category = [];
-  let jobType = null;
-  let jobCategory = null;
-  let jobLocation = null;
-  let shouldSearch = false;
-  let type = null;
-  let finishTime = null;
-  let all_categories = [];
-  let all_locations = [];
-  let all_jobType = [];
-  let sortFilter = "median_high";
-  let jobCount = {};
-  let selected_job_type = "permanent";
-  const cleanArr = arr => arr.filter(i => i.length);
+  export let name
+  export let data
+  import Comp from "./comp.svelte"
+  import { onMount } from "svelte"
+  let all_jobs = null
+  let result = null
+  let query = ""
+  let queryMirror = ""
+  let selectedJobType
+  let selectedJobCategory
+  let selectedJobLocation
+  let location = []
+  let category = []
+  let jobType = null
+  let jobCategory = null
+  let jobLocation = null
+  let shouldSearch = false
+  let type = null
+  let finishTime = null
+  let all_categories = []
+  let has_categories = false
+  let all_locations = []
+  let has_locations = []
+  let all_jobType = []
+  let sortFilter = "median_high"
+  let jobCount = {}
+  let selected_job_type = "permanent"
+  const cleanArr = arr => arr.filter(i => i.length)
   function setCSV(e) {
-    const parsedData = JSON.parse(
-      document.querySelector("#salary-data-json #slary-json-string").innerText
-    );
+    const parsedData = JSON.parse(data)
     all_jobs = parsedData
-      .filter(({ category }) => category)
+      .filter(({ job_title }) => job_title)
       .map(item => {
         Object.keys(item).forEach(key => {
-          item[key] = item[key];
-        });
-        return item;
-      });
+          item[key] = item[key]
+        })
+        return item
+      })
+
     all_categories = all_jobs.reduce((acc, { category: cat }) => {
-      if (!cat || acc.includes(cat.toLowerCase())) return acc;
-      return acc.concat(cat.toLowerCase());
-    }, []);
+      if (!cat || acc.includes(cat.toLowerCase())) return acc
+      return acc.concat(cat.toLowerCase())
+    }, [])
+    has_categories = Boolean(all_categories.length)
     all_locations = all_jobs.reduce((acc, { location: loc }) => {
-      if (!loc || acc.includes(loc.toLowerCase())) return acc;
-      return acc.concat(loc.toLowerCase());
-    }, []);
-    all_jobType = ["Permanent", "Contract"];
+      if (!loc || acc.includes(loc.toLowerCase())) return acc
+      return acc.concat(loc.toLowerCase())
+    }, [])
+
+    has_locations = Boolean(all_locations.length)
+    all_jobType = ["Permanent", "Contract"]
   }
 
   function searchQuery(e) {
-    const val = e.target.value.toLowerCase();
-    if (!all_jobs) return;
-    query = val;
-    search();
+    const val = e.target.value.toLowerCase()
+    if (!all_jobs) return
+    query = val
+    search()
   }
 
   function filterJobLocation(e) {
-    jobLocation = e.target.value;
-    search();
+    jobLocation = e.target.value
+    search()
   }
 
   function filterJobCategory(e) {
-    jobCategory = e.target.value;
-    search();
+    jobCategory = e.target.value
+    search()
   }
 
   function filterJobType(e) {
-    jobType = e.target.value;
-    search();
+    jobType = e.target.value
+    search()
   }
 
   function hasValue(x) {
-    return Boolean(x && x.length && !/null|undefinde/.test(x));
+    return Boolean(x && x.length && !/null|undefinde/.test(x))
   }
 
   function search() {
-    if (!shouldSearch) return;
-    const start = now();
+    if (!shouldSearch) return
+    const start = now()
     result = all_jobs
       .filter(job => {
-        const conditions = [];
-        let match = true;
-        const hasQuery = hasValue(query);
-        const hasJobLocation = hasValue(jobLocation);
-        const hasJobCategory = hasValue(jobCategory);
+        const conditions = []
+        let match = true
+        const hasQuery = hasValue(query)
+        const hasJobLocation = hasValue(jobLocation)
+        const hasJobCategory = hasValue(jobCategory)
         // match all if no filters selected !
         if (!hasQuery && !hasJobLocation & !hasJobCategory) {
-          return true;
+          return true
         }
         if (hasJobLocation) {
-          match = twoWayMatch(jobLocation, job.location);
+          match = twoWayMatch(jobLocation, job.location)
         }
         if (hasJobCategory && match) {
-          match = twoWayMatch(jobCategory, job.category);
+          match = twoWayMatch(jobCategory, job.category)
         }
         if (hasQuery && match) {
-          if (twoWayMatch(query, job.job_title)) match = true;
-          else match = false;
+          if (twoWayMatch(query, job.job_title)) match = true
+          else match = false
         }
-        return match;
+        return match
       })
-      .sort(_sortHandler);
-    finishTime = (now() - start).toFixed(2);
+      .sort(_sortHandler)
+    finishTime = (now() - start).toFixed(2)
   }
 
   function twoWayMatch(a = "", b = "") {
-    a = a.toLowerCase();
-    b = b.toLowerCase();
-    return a.includes(b) || b.includes(a);
+    a = a.toLowerCase()
+    b = b.toLowerCase()
+    return a.includes(b) || b.includes(a)
   }
   function median(values) {
     values.sort(function(a, b) {
-      return a - b;
-    });
-    var half = Math.floor(values.length / 2);
+      return a - b
+    })
+    var half = Math.floor(values.length / 2)
 
-    if (values.length % 2) return values[half];
-    else return (values[half - 1] + values[half]) / 2.0;
+    if (values.length % 2) return values[half]
+    else return (values[half - 1] + values[half]) / 2.0
   }
 
   function now() {
-    if (window.performance) return window.performance.now();
-    return Date.now();
+    if (window.performance) return window.performance.now()
+    return Date.now()
   }
   function sortBySalary(e) {
-    const start = now();
-    let val = e.target.value;
-    sortFilter = val;
+    const start = now()
+    let val = e.target.value
+    sortFilter = val
 
-    if (!result) return;
-    result = result.sort(_sortHandler);
-    finishTime = (now() - start).toFixed(5);
+    if (!result) return
+    result = result.sort(_sortHandler)
+    finishTime = (now() - start).toFixed(5)
   }
 
   function _sortHandler(a, b) {
-    const lowA = parseInt(a.permanent_low.replace("k", "000"));
-    const lowB = parseInt(b.permanent_low.replace("k", "000"));
-    const highA = parseInt(a.permanent_high.replace("k", "000"));
-    const highB = parseInt(b.permanent_high.replace("k", "000"));
-    const medianA = median([lowA, highA]);
-    const medianB = median([lowB, highB]);
+    const lowA = parseInt(a.permanent_low.replace("k", "000"))
+    const lowB = parseInt(b.permanent_low.replace("k", "000"))
+    const highA = parseInt(a.permanent_high.replace("k", "000"))
+    const highB = parseInt(b.permanent_high.replace("k", "000"))
+    const medianA = median([lowA, highA])
+    const medianB = median([lowB, highB])
     switch (sortFilter) {
       case "low_low":
-        return lowA > lowB ? 1 : -1;
+        return lowA > lowB ? 1 : -1
       case "high_low":
-        return lowA < lowB ? 1 : -1;
+        return lowA < lowB ? 1 : -1
       case "low_high":
-        return highA > highB ? 1 : -1;
+        return highA > highB ? 1 : -1
       case "high_high":
-        return highA < highB ? 1 : -1;
+        return highA < highB ? 1 : -1
       case "median_low":
-        return medianA > medianB ? 1 : -1;
+        return medianA > medianB ? 1 : -1
       case "median_high":
-        return medianA < medianB ? 1 : -1;
+        return medianA < medianB ? 1 : -1
       default:
-        return;
+        return
     }
   }
 
   function matchFilter(arr = [], val = "") {
-    return arr.some(i => i.length && twoWayMatch(i, val));
+    return arr.some(i => i.length && twoWayMatch(i, val))
   }
 
   onMount(() => {
-    setCSV();
-    console.log("the component has mounted");
-  });
+    setCSV()
+    console.log("the component has mounted")
+  })
 
   function startSearch() {
-    shouldSearch = true;
-    search();
+    shouldSearch = true
+    search()
   }
 
   function formatCasing(str) {
     return str.length && str.length < 4
       ? str.toUpperCase()
-      : str[0].toUpperCase() + str.slice(1);
+      : str[0].toUpperCase() + str.slice(1)
+  }
+
+  function maybeTriggerSearch(event) {
+    // console.log(event)
+    if (event.key === "Enter") startSearch()
   }
 </script>
 
@@ -301,35 +311,43 @@
 <Comp />
 <div class="search-container">
   <div class="search">
-    <input placeholder="Job Title" type="text" on:input={searchQuery} />
-    <label class="wrap">
-      <select
-        class="dropdown"
-        bind:value={selectedJobCategory}
-        on:change={filterJobCategory}>
-        <option value="null" selected disabled>Job Category</option>
-        <option value={null}>All Categories</option>
-        {#each all_categories as cat, i}
-          <option id={cat} value={cat} selectedJobCategory={jobCategory}>
-             {formatCasing(cat)}
-          </option>
-        {/each}
-      </select>
-    </label>
-    <label class="wrap">
-      <select
-        class="dropdown"
-        bind:value={selectedJobLocation}
-        on:change={filterJobLocation}>
-        <option value="null" selected disabled>Location</option>
-        <option value={null}>All Job Locations</option>
-        {#each all_locations as loc, i}
-          <option id={loc} value={loc} selectedJobLocation={jobLocation}>
-             {formatCasing(loc)}
-          </option>
-        {/each}
-      </select>
-    </label>
+    <input
+      placeholder="Job Title"
+      type="text"
+      on:input={searchQuery}
+      on:keydown={maybeTriggerSearch} />
+    {#if has_categories}
+      <label class="wrap">
+        <select
+          class="dropdown"
+          bind:value={selectedJobCategory}
+          on:change={filterJobCategory}>
+          <option value="null" selected disabled>Job Category</option>
+          <option value={null}>All Categories</option>
+          {#each all_categories as cat, i}
+            <option id={cat} value={cat} selectedJobCategory={jobCategory}>
+              {formatCasing(cat)}
+            </option>
+          {/each}
+        </select>
+      </label>
+    {/if}
+    {#if has_locations}
+      <label class="wrap">
+        <select
+          class="dropdown"
+          bind:value={selectedJobLocation}
+          on:change={filterJobLocation}>
+          <option value="null" selected disabled>Location</option>
+          <option value={null}>All Job Locations</option>
+          {#each all_locations as loc, i}
+            <option id={loc} value={loc} selectedJobLocation={jobLocation}>
+              {formatCasing(loc)}
+            </option>
+          {/each}
+        </select>
+      </label>
+    {/if}
     <button class="search-button" on:click={startSearch}>
       <i class="fa fa-search" />
     </button>
@@ -347,7 +365,7 @@
             <div class="toggle">
               <button
                 on:click={(...args) => {
-                  selected_job_type = 'permanent';
+                  selected_job_type = 'permanent'
                 }}
                 class={selected_job_type === 'permanent' ? 'selected' : null}>
                 Permanent
@@ -363,19 +381,28 @@
         <ol>
           {#each result as { job_title, job_type, category, location, permanent_high, permanent_low, contract_low, contract_high }, i}
             <li>
-              <div class="job-title"> {job_title} </div>
-              in
-              <div class="job-category">{category}</div>
-              at
-              <div
-                class="job-location {location.length && location.length < 4 ? 'abbriviated' : null}">
-                 {location}
-              </div>
+              <div class="job-title">{job_title}</div>
+              {#if has_categories}
+                in
+                <div class="job-category">{category}</div>
+              {/if}
+              {#if has_locations}
+                at
+                <div
+                  class="job-location {location.length && location.length < 4 ? 'abbriviated' : null}">
+                  {location}
+                </div>
+              {/if}
               for
               <div class="job-range">
                 {#if selected_job_type === 'permanent'}
-                  ${permanent_low}-{permanent_high} per annum
-                {:else}${contract_low}-{contract_high} per hour{/if}
+                  {#if permanent_low && !permanent_low.includes('$')}${/if}
+                  {permanent_low}-{permanent_high} per annum
+                {:else}
+                  {#if contract_low && !contract_low.includes('$')}${/if}
+                  {contract_low || 'Undisclosed'} - {contract_high || 'Undisclosed'}
+                  per hour
+                {/if}
               </div>
             </li>
           {:else}Nothing to Show{/each}

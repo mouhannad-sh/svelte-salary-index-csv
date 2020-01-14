@@ -397,7 +397,8 @@
               <div class="job-range">
                 {#if selected_job_type === 'permanent'}
                   {#if permanent_low && !permanent_low.includes('$')}${/if}
-                  {permanent_low}-{permanent_high} per annum
+                  {permanent_low || 'Undisclosed'} - {permanent_high || 'Undisclosed'}
+                  per annum
                 {:else}
                   {#if contract_low && !contract_low.includes('$')}${/if}
                   {contract_low || 'Undisclosed'} - {contract_high || 'Undisclosed'}
